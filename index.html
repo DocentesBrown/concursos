@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Buscador de Concursos de Ed. Superior</title>
+  <script src="https://unpkg.com/tabletop@1.6.0/tabletop.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    header {
+      background-color: #4214b1;
+      color: white;
+      padding: 30px;
+      text-align: center;
+      border-radius: 10px;
+    }
+
+    h1 {
+      margin: 0;
+    }
+
+    h2 {
+      margin-top: 5px;
+      font-weight: normal;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    select, button {
+      padding: 10px;
+      font-size: 1em;
+    }
+
+    .results {
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .card p {
+      margin: 5px 0;
+    }
+
+    .card a {
+      margin-right: 10px;
+      color: white;
+      background-color: #4214b1;
+      padding: 8px 12px;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Buscador de Concursos de Ed. Superior</h1>
+    <h2>Desarrollado por Docentes Brown</h2>
+  </header>
+
+  <section class="filters">
+    <select id="campo"><option value="">Campo</option></select>
+    <select id="area"><option value="">Área o Disciplina</option></select>
+    <select id="distrito"><option value="">Distrito</option></select>
+    <button onclick="filtrar()">BUSCAR OFERTAS VIGENTES</button>
+  </section>
+
+  <section class="results" id="resultados"></section>
+
+  <script>
+    const publicSpreadsheetUrl = 'https://docs.google.com/spreadsheets/d/1rSusCikfrjA4KD-pE_NbPWvyBEwXdqemECtRkzOHYWM/pubhtml';
+
+    let data = [];
+
+    window.addEventListener('DOMContentLoaded', init)
+
+    function init() {
+      Tabletop.init({
+        key: publicSpreadsheetUrl,
+        simpleSheet: true,
+        callback: cargarDatos
+      });
+    }
+
+    function cargarDatos(sheetData) {
+      data = sheetData;
+
+      const campos = [...new Set(data.map(d => d['Campo']).filter(Boolean))];
+      const areas = [...new Set(data.map(d => d['Área o Disciplina']).filter(Boolean))];
+      const distritos = [...new Set(data.map(d => d['Distrito']).filter(Boolean))];
+
+      agregarOpciones('campo', campos);
+      agregarOpciones('area', areas);
+      agregarOpciones('distrito', distritos);
+    }
+
+    function agregarOpciones(id, opciones) {
+      const select = document.getElementById(id);
+      opciones.sort().forEach(op => {
+        const option = document.createElement('option');
+        option.value = op;
+        option.textContent = op;
+        select.appendChild(option);
+      });
+    }
+
+    function filtrar() {
+      const campo = document.getElementById('campo').value;
+      const area = document.getElementById('area').value;
+      const distrito = document.getElementById('distrito').value;
+
+      const filtrado = data.filter(row => {
+        return (!campo || row['Campo'] === campo) &&
+               (!area || row['Área o Disciplina'] === area) &&
+               (!distrito || row['Distrito'] === distrito);
+      });
+
+      mostrarResultados(filtrado);
+    }
+
+    function mostrarResultados(rows) {
+      const contenedor = document.getElementById('resultados');
+      contenedor.innerHTML = '';
+
+      if (rows.length === 0) {
+        contenedor.innerHTML = '<p>No se encontraron resultados.</p>';
+        return;
+      }
+
+      rows.forEach(row => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <p><strong>Institución:</strong> ${row['Institución']}</p>
+          <p><strong>Carrera:</strong> ${row['Carrera']}</p>
+          <p><strong>Unidad Curricular:</strong> ${row['Unidad Curricular']}</p>
+          <p><strong>Fecha para presentar el Proyecto:</strong> ${row['Fecha Proyecto']}</p>
+          <p><strong>Módulos:</strong> ${row['Módulos']}</p>
+          <p><strong>Revista:</strong> ${row['Revista']}</p>
+          <p><strong>Día y Horario:</strong> ${row['Día y Horario']}</p>
+          <a href="${row['Ubicación']}" target="_blank">Ubicación</a>
+          <a href="${row['Comunicado']}" target="_blank">Comunicado</a>
+        `;
+        contenedor.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
