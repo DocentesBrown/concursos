@@ -2,152 +2,139 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Buscador de Concursos de Ed. Superior</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      padding: 20px;
-    }
-    header {
-      background: #4214b1;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      border-radius: 10px;
-    }
-    .filters {
-      margin: 20px 0;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    select, button {
-      padding: 10px;
-      font-size: 1em;
-    }
-    .results {
-      margin-top: 20px;
-      display: grid;
-      gap: 20px;
-    }
-    .card {
-      background: white;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .card p {
-      margin: 5px 0;
-    }
-    .card a {
-      display: inline-block;
-      margin-top: 10px;
-      margin-right: 10px;
-      background: #4214b1;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ofertas Educativas</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen p-4 text-gray-900">
 
-  <header>
-    <h1>Buscador de Concursos de Ed. Superior</h1>
-    <h2>Desarrollado por Docentes Brown</h2>
-  </header>
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-6">Ofertas Educativas</h1>
 
-  <div class="filters">
-    <select id="campo"><option value="">Campo</option></select>
-    <select id="area"><option value="">Área o Disciplina</option></select>
-    <select id="distrito"><option value="">Distrito</option></select>
-    <button onclick="filtrar()">BUSCAR OFERTAS VIGENTES</button>
+    <!-- Filtros -->
+    <div class="space-y-4 mb-6">
+      <select id="campoSelect" class="w-full p-2 rounded border" onchange="actualizarTitulos()">
+        <option value="">Seleccioná un Campo</option>
+      </select>
+
+      <select id="tituloSelect" class="w-full p-2 rounded border hidden" onchange="actualizarDistritos()">
+        <option value="">Seleccioná un Título</option>
+      </select>
+
+      <select id="distritoSelect" class="w-full p-2 rounded border hidden">
+        <option value="">Seleccioná un Distrito</option>
+      </select>
+    </div>
+
+    <button onclick="filtrarOfertas()" class="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded mb-6 w-full">
+      BUSCAR OFERTAS ACTIVAS
+    </button>
+
+    <!-- Contenedor de resultados -->
+    <div id="resultados" class="space-y-4"></div>
   </div>
 
-  <div class="results" id="resultados"></div>
-
   <script>
-    const URL_JSON = "https://spreadsheets.google.com/feeds/list/1rSusCikfrjA4KD-pE_NbPWvyBEwXdqemECtRkzOHYWM/od6/public/values?alt=json";
+    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRyqgjE9sIIl7fEjrmVzsQo7lCc8w6Nw4EKqcbrqsT-gUDXt_YHn4tHIZJJ7eAEr9JNlJvTW16r7Fyk/pub?output=csv";
+
     let datos = [];
 
-    fetch(URL_JSON)
-      .then(res => res.json())
-      .then(data => {
-        datos = data.feed.entry.map(row => ({
-          campo: row.gsx$campo?.$t || "",
-          area: row.gsx$áreaodisciplina?.$t || "",
-          distrito: row.gsx$distrito?.$t || "",
-          institucion: row.gsx$institución?.$t || "",
-          carrera: row.gsx$carrera?.$t || "",
-          unidad: row.gsx$unidadcurricular?.$t || "",
-          fecha: row.gsx$fechaproyecto?.$t || "",
-          modulos: row.gsx$módulos?.$t || "",
-          revista: row.gsx$revista?.$t || "",
-          horario: row.gsx$díayhorario?.$t || "",
-          ubicacion: row.gsx$ubicación?.$t || "#",
-          comunicado: row.gsx$comunicado?.$t || "#"
-        }));
-
-        // Cargar filtros únicos
-        cargarFiltro("campo", [...new Set(datos.map(d => d.campo))].sort());
-        cargarFiltro("area", [...new Set(datos.map(d => d.area))].sort());
-        cargarFiltro("distrito", [...new Set(datos.map(d => d.distrito))].sort());
+    fetch(sheetURL)
+      .then(response => response.text())
+      .then(csvText => {
+        const parsed = Papa.parse(csvText, { header: true });
+        datos = parsed.data.filter(row => row["Campo"] && row["Título"] && row["Distrito"]);
+        cargarCampos();
       });
 
-    function cargarFiltro(id, opciones) {
-      const select = document.getElementById(id);
-      opciones.forEach(op => {
+    function cargarCampos() {
+      const campoSelect = document.getElementById("campoSelect");
+      const campos = [...new Set(datos.map(row => row["Campo"]).filter(Boolean))].sort();
+      campos.forEach(campo => {
         const option = document.createElement("option");
-        option.value = op;
-        option.textContent = op;
-        select.appendChild(option);
+        option.value = campo;
+        option.textContent = campo;
+        campoSelect.appendChild(option);
       });
     }
 
-    function filtrar() {
-      const campo = document.getElementById("campo").value;
-      const area = document.getElementById("area").value;
-      const distrito = document.getElementById("distrito").value;
+    function actualizarTitulos() {
+      const campo = document.getElementById("campoSelect").value;
+      const tituloSelect = document.getElementById("tituloSelect");
+      tituloSelect.innerHTML = '<option value="">Seleccioná un Título</option>';
+      document.getElementById("distritoSelect").classList.add("hidden");
+      document.getElementById("tituloSelect").classList.toggle("hidden", !campo);
 
-      const filtrado = datos.filter(d =>
-        (!campo || d.campo === campo) &&
-        (!area || d.area === area) &&
-        (!distrito || d.distrito === distrito)
+      if (campo) {
+        const titulos = [...new Set(datos.filter(row => row["Campo"] === campo).map(row => row["Título"]))].sort();
+        titulos.forEach(titulo => {
+          const option = document.createElement("option");
+          option.value = titulo;
+          option.textContent = titulo;
+          tituloSelect.appendChild(option);
+        });
+      }
+    }
+
+    function actualizarDistritos() {
+      const campo = document.getElementById("campoSelect").value;
+      const titulo = document.getElementById("tituloSelect").value;
+      const distritoSelect = document.getElementById("distritoSelect");
+      distritoSelect.innerHTML = '<option value="">Seleccioná un Distrito</option>';
+      distritoSelect.classList.toggle("hidden", !titulo);
+
+      if (titulo) {
+        const distritos = [...new Set(datos.filter(row =>
+          row["Campo"] === campo && row["Título"] === titulo).map(row => row["Distrito"]))].sort();
+        distritos.forEach(distrito => {
+          const option = document.createElement("option");
+          option.value = distrito;
+          option.textContent = distrito;
+          distritoSelect.appendChild(option);
+        });
+      }
+    }
+
+    function filtrarOfertas() {
+      const campo = document.getElementById("campoSelect").value;
+      const titulo = document.getElementById("tituloSelect").value;
+      const distrito = document.getElementById("distritoSelect").value;
+      const resultadosDiv = document.getElementById("resultados");
+      resultadosDiv.innerHTML = "";
+
+      const ofertas = datos.filter(row =>
+        row["Campo"] === campo &&
+        row["Título"] === titulo &&
+        row["Distrito"] === distrito
       );
 
-      mostrarResultados(filtrado);
-    }
-
-    function mostrarResultados(items) {
-      const contenedor = document.getElementById("resultados");
-      contenedor.innerHTML = "";
-
-      if (items.length === 0) {
-        contenedor.innerHTML = "<p>No hay resultados para los filtros seleccionados.</p>";
+      if (ofertas.length === 0) {
+        resultadosDiv.innerHTML = "<p class='text-center text-gray-500'>No se encontraron ofertas activas.</p>";
         return;
       }
 
-      items.forEach(d => {
-        const div = document.createElement("div");
-        div.className = "card";
-        div.innerHTML = `
-          <p><strong>Institución:</strong> ${d.institucion}</p>
-          <p><strong>Carrera:</strong> ${d.carrera}</p>
-          <p><strong>Unidad Curricular:</strong> ${d.unidad}</p>
-          <p><strong>Fecha para presentar el Proyecto:</strong> ${d.fecha}</p>
-          <p><strong>Módulos:</strong> ${d.modulos}</p>
-          <p><strong>Revista:</strong> ${d.revista}</p>
-          <p><strong>Día y Horario:</strong> ${d.horario}</p>
-          <a href="${d.ubicacion}" target="_blank">Ubicación</a>
-          <a href="${d.comunicado}" target="_blank">Comunicado</a>
+      ofertas.forEach(oferta => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow p-4";
+
+        card.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${oferta["Institución"]}</h2>
+          <p><strong>Carrera:</strong> ${oferta["Carrera"]}</p>
+          <p><strong>Unidad Curricular:</strong> ${oferta["Unidad Curricular"]}</p>
+          <p><strong>Fecha de entrega del Proyecto:</strong> ${oferta["Fecha de entrega del Proyecto"]}</p>
+          <p><strong>Módulos:</strong> ${oferta["Módulos"]}</p>
+          <p><strong>Revista:</strong> ${oferta["Revista"]}</p>
+          <p><strong>Día y Horario:</strong> ${oferta["Día y Horario"]}</p>
+          <div class="mt-4 flex gap-4">
+            <a href="${oferta["Ubicación"]}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Ubicación</a>
+            <a href="${oferta["Comunicado"]}" download class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Comunicado</a>
+          </div>
         `;
-        contenedor.appendChild(div);
+
+        resultadosDiv.appendChild(card);
       });
     }
   </script>
-
 </body>
 </html>
