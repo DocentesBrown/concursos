@@ -18,7 +18,7 @@
 </head>
 <body class="min-h-screen p-4">
   <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-1">Concursos Vigentes</h1>
+    <h1 class="text-3xl font-bold text-center mb-1" style="color: #24496e">Concursos Vigentes</h1>
     <p class="text-center text-sm mb-6">Desarrollado y optimizado por Docentes Brown</p>
 
     <!-- Filtros -->
@@ -36,7 +36,7 @@
       </select>
     </div>
 
-    <button onclick="filtrarOfertas()" class="bg-[#da6863] hover:bg-[#c65350] text-white font-semibold px-4 py-2 rounded mb-6 w-full">
+    <button onclick="filtrarOfertas()" class="bg-[#24496e] hover:bg-[#1b3552] text-white font-semibold px-4 py-2 rounded mb-6 w-full">
       BUSCAR OFERTAS ACTIVAS
     </button>
 
@@ -53,7 +53,7 @@
       .then(response => response.text())
       .then(csvText => {
         const parsed = Papa.parse(csvText, { header: true });
-        datos = parsed.data.filter(row => row["Campo"] && row["Título"] && row["Distrito"]);
+        datos = parsed.data.filter(row => typeof row === 'object' && row["Campo"] && row["Título"] && row["Distrito"]);
         cargarCampos();
       });
 
@@ -124,15 +124,24 @@
       }
 
       ofertas.forEach(oferta => {
-        const id = encodeURIComponent(oferta["Número de Oferta"] || "sin-id");
         const card = document.createElement("div");
         card.className = "bg-white rounded-xl shadow p-4";
 
+        const textoCompartir =
+`Unidad Curricular: ${oferta["Unidad Curricular"]}
+Institución: ${oferta["Institución"]}
+Distrito: ${oferta["Distrito"]}
+Carrera: ${oferta["Carrera"]}
+Fecha de entrega del Proyecto: ${oferta["Fecha de entrega del Proyecto"]}
+Módulos: ${oferta["Módulos"]}
+Revista: ${oferta["Revista"]}
+Día y Horario: ${oferta["Día y Horario"]}`;
+
         card.innerHTML = `
-          <h2 class="text-xl font-bold mb-2" style="color: #24496e">${oferta["Institución"]}</h2>
+          <h2 class="text-xl font-bold mb-2" style="color: #24496e">${oferta["Unidad Curricular"]}</h2>
+          <p><strong>Institución:</strong> ${oferta["Institución"]}</p>
           <p><strong>Distrito:</strong> ${oferta["Distrito"]}</p>
           <p><strong>Carrera:</strong> ${oferta["Carrera"]}</p>
-          <p><strong>Unidad Curricular:</strong> ${oferta["Unidad Curricular"]}</p>
           <p><strong>Fecha de entrega del Proyecto:</strong> ${oferta["Fecha de entrega del Proyecto"]}</p>
           <p><strong>Módulos:</strong> ${oferta["Módulos"]}</p>
           <p><strong>Revista:</strong> ${oferta["Revista"]}</p>
@@ -140,7 +149,7 @@
           <div class="mt-4 flex gap-4 flex-wrap">
             <a href="${oferta["Ubicación"]}" target="_blank" class="bg-[#2d8bba] hover:bg-[#236d92] text-white px-3 py-1 rounded">Ubicación</a>
             <a href="${oferta["Comunicado"]}" download class="bg-[#4d3069] hover:bg-[#3a2552] text-white px-3 py-1 rounded">Comunicado</a>
-            <button onclick="copiarEnlace('${id}')" class="bg-[#777] hover:bg-[#555] text-white px-3 py-1 rounded">Copiar enlace</button>
+            <button onclick="compartirTexto(${JSON.stringify(textoCompartir)})" class="bg-[#da6863] hover:bg-[#b44e4b] text-white px-3 py-1 rounded">Compartir</button>
           </div>
         `;
 
@@ -148,11 +157,17 @@
       });
     }
 
-    function copiarEnlace(id) {
-      const url = `${location.origin}${location.pathname}?oferta=${id}`;
-      navigator.clipboard.writeText(url).then(() => {
-        alert("Enlace copiado al portapapeles");
-      });
+    function compartirTexto(texto) {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Oferta Educativa',
+          text: texto
+        }).catch(console.error);
+      } else {
+        navigator.clipboard.writeText(texto).then(() => {
+          alert("Texto copiado al portapapeles para compartir");
+        });
+      }
     }
   </script>
 </body>
