@@ -3,31 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ofertas Educativas</title>
+  <title>Concursos Vigentes</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #f3efdc;
+      color: #4d3069;
+    }
+    select, button {
+      color: #4d3069;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 text-gray-900">
-
+<body class="min-h-screen p-4">
   <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-6">Ofertas Educativas</h1>
+    <h1 class="text-3xl font-bold text-center mb-1">Concursos Vigentes</h1>
+    <p class="text-center text-sm mb-6">Desarrollado y optimizado por Docentes Brown</p>
 
     <!-- Filtros -->
     <div class="space-y-4 mb-6">
-      <select id="campoSelect" class="w-full p-2 rounded border" onchange="actualizarTitulos()">
+      <select id="campoSelect" class="w-full p-2 rounded border border-[#4d3069]" onchange="actualizarTitulos()">
         <option value="">Seleccioná un Campo</option>
       </select>
 
-      <select id="tituloSelect" class="w-full p-2 rounded border hidden" onchange="actualizarDistritos()">
+      <select id="tituloSelect" class="w-full p-2 rounded border border-[#4d3069] hidden" onchange="actualizarDistritos()">
         <option value="">Seleccioná un Título</option>
       </select>
 
-      <select id="distritoSelect" class="w-full p-2 rounded border hidden">
+      <select id="distritoSelect" class="w-full p-2 rounded border border-[#4d3069] hidden">
         <option value="">Seleccioná un Distrito</option>
       </select>
     </div>
 
-    <button onclick="filtrarOfertas()" class="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded mb-6 w-full">
+    <button onclick="filtrarOfertas()" class="bg-[#da6863] hover:bg-[#c65350] text-white font-semibold px-4 py-2 rounded mb-6 w-full">
       BUSCAR OFERTAS ACTIVAS
     </button>
 
@@ -103,11 +112,11 @@
       const resultadosDiv = document.getElementById("resultados");
       resultadosDiv.innerHTML = "";
 
-      const ofertas = datos.filter(row =>
-        row["Campo"] === campo &&
-        row["Título"] === titulo &&
-        row["Distrito"] === distrito
-      );
+      const ofertas = datos.filter(row => {
+        return (!campo || row["Campo"] === campo) &&
+               (!titulo || row["Título"] === titulo) &&
+               (!distrito || row["Distrito"] === distrito);
+      });
 
       if (ofertas.length === 0) {
         resultadosDiv.innerHTML = "<p class='text-center text-gray-500'>No se encontraron ofertas activas.</p>";
@@ -115,24 +124,34 @@
       }
 
       ofertas.forEach(oferta => {
+        const id = encodeURIComponent(oferta["Número de Oferta"] || "sin-id");
         const card = document.createElement("div");
         card.className = "bg-white rounded-xl shadow p-4";
 
         card.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${oferta["Institución"]}</h2>
+          <h2 class="text-xl font-bold mb-2" style="color: #24496e">${oferta["Institución"]}</h2>
+          <p><strong>Distrito:</strong> ${oferta["Distrito"]}</p>
           <p><strong>Carrera:</strong> ${oferta["Carrera"]}</p>
           <p><strong>Unidad Curricular:</strong> ${oferta["Unidad Curricular"]}</p>
           <p><strong>Fecha de entrega del Proyecto:</strong> ${oferta["Fecha de entrega del Proyecto"]}</p>
           <p><strong>Módulos:</strong> ${oferta["Módulos"]}</p>
           <p><strong>Revista:</strong> ${oferta["Revista"]}</p>
           <p><strong>Día y Horario:</strong> ${oferta["Día y Horario"]}</p>
-          <div class="mt-4 flex gap-4">
-            <a href="${oferta["Ubicación"]}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">Ubicación</a>
-            <a href="${oferta["Comunicado"]}" download class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Comunicado</a>
+          <div class="mt-4 flex gap-4 flex-wrap">
+            <a href="${oferta["Ubicación"]}" target="_blank" class="bg-[#2d8bba] hover:bg-[#236d92] text-white px-3 py-1 rounded">Ubicación</a>
+            <a href="${oferta["Comunicado"]}" download class="bg-[#4d3069] hover:bg-[#3a2552] text-white px-3 py-1 rounded">Comunicado</a>
+            <button onclick="copiarEnlace('${id}')" class="bg-[#777] hover:bg-[#555] text-white px-3 py-1 rounded">Copiar enlace</button>
           </div>
         `;
 
         resultadosDiv.appendChild(card);
+      });
+    }
+
+    function copiarEnlace(id) {
+      const url = `${location.origin}${location.pathname}?oferta=${id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Enlace copiado al portapapeles");
       });
     }
   </script>
