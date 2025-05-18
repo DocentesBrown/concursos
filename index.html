@@ -149,7 +149,7 @@ Día y Horario: ${oferta["Día y Horario"]}`;
           <div class="mt-4 flex gap-4 flex-wrap">
             <a href="${oferta["Ubicación"]}" target="_blank" class="bg-[#2d8bba] hover:bg-[#236d92] text-white px-3 py-1 rounded">Ubicación</a>
             <a href="${oferta["Comunicado"]}" download class="bg-[#4d3069] hover:bg-[#3a2552] text-white px-3 py-1 rounded">Comunicado</a>
-            <button onclick="compartirTexto(${JSON.stringify(textoCompartir)})" class="bg-[#da6863] hover:bg-[#b44e4b] text-white px-3 py-1 rounded">Compartir</button>
+            <button onclick="compartirTexto(\`${textoCompartir}\`)" class="bg-[#da6863] hover:bg-[#b44e4b] text-white px-3 py-1 rounded">Compartir</button>
           </div>
         `;
 
@@ -158,16 +158,16 @@ Día y Horario: ${oferta["Día y Horario"]}`;
     }
 
     function compartirTexto(texto) {
-      if (navigator.share) {
-        navigator.share({
-          title: 'Oferta Educativa',
-          text: texto
-        }).catch(console.error);
-      } else {
-        navigator.clipboard.writeText(texto).then(() => {
-          alert("Texto copiado al portapapeles para compartir");
-        });
-      }
+      const mensaje = encodeURIComponent(texto);
+      const urlWhatsApp = `https://wa.me/?text=${mensaje}`;
+
+      // Abre WhatsApp
+      window.open(urlWhatsApp, "_blank");
+
+      // Copia al portapapeles
+      navigator.clipboard.writeText(texto).then(() => {
+        alert("Texto copiado al portapapeles. También se abrió WhatsApp si está disponible.");
+      });
     }
   </script>
 </body>
