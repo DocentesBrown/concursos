@@ -1,45 +1,45 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buscador de Concursos de Ed. Superior</title>
   <script src="https://unpkg.com/tabletop@1.6.0/tabletop.js"></script>
   <style>
     body {
       font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
       padding: 20px;
-      background-color: #f5f5f5;
-      color: #333;
     }
 
     header {
       background-color: #4214b1;
       color: white;
-      padding: 30px;
+      padding: 20px;
       text-align: center;
       border-radius: 10px;
     }
 
-    h1 {
+    h1, h2 {
       margin: 0;
     }
 
     h2 {
-      margin-top: 5px;
       font-weight: normal;
+      font-size: 1rem;
     }
 
     .filters {
+      margin: 20px 0;
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin: 20px 0;
     }
 
     select, button {
       padding: 10px;
-      font-size: 1em;
+      font-size: 1rem;
     }
 
     .results {
@@ -51,7 +51,7 @@
       background: white;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
 
     .card p {
@@ -59,13 +59,14 @@
     }
 
     .card a {
-      margin-right: 10px;
-      color: white;
-      background-color: #4214b1;
-      padding: 8px 12px;
-      text-decoration: none;
-      border-radius: 5px;
       display: inline-block;
+      margin-top: 10px;
+      margin-right: 10px;
+      background-color: #4214b1;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 5px;
+      text-decoration: none;
     }
   </style>
 </head>
@@ -76,49 +77,46 @@
     <h2>Desarrollado por Docentes Brown</h2>
   </header>
 
-  <section class="filters">
+  <div class="filters">
     <select id="campo"><option value="">Campo</option></select>
     <select id="area"><option value="">Área o Disciplina</option></select>
     <select id="distrito"><option value="">Distrito</option></select>
     <button onclick="filtrar()">BUSCAR OFERTAS VIGENTES</button>
-  </section>
+  </div>
 
-  <section class="results" id="resultados"></section>
+  <div class="results" id="resultados"></div>
 
   <script>
-    const publicSpreadsheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyqgjE9sIIl7fEjrmVzsQo7lCc8w6Nw4EKqcbrqsT-gUDXt_YHn4tHIZJJ7eAEr9JNlJvTW16r7Fyk/pubhtml?gid=0&single=true';
+    const publicSpreadsheetUrl = 'https://docs.google.com/spreadsheets/d/1rSusCikfrjA4KD-pE_NbPWvyBEwXdqemECtRkzOHYWM/pubhtml';
+    let datos = [];
 
-    let data = [];
-
-    window.addEventListener('DOMContentLoaded', init)
-
-    function init() {
+    window.addEventListener('DOMContentLoaded', () => {
       Tabletop.init({
         key: publicSpreadsheetUrl,
         simpleSheet: true,
         callback: cargarDatos
       });
+    });
+
+    function cargarDatos(data) {
+      datos = data;
+
+      const campos = [...new Set(data.map(d => d['Campo']).filter(Boolean))].sort();
+      const areas = [...new Set(data.map(d => d['Área o Disciplina']).filter(Boolean))].sort();
+      const distritos = [...new Set(data.map(d => d['Distrito']).filter(Boolean))].sort();
+
+      llenarSelect('campo', campos);
+      llenarSelect('area', areas);
+      llenarSelect('distrito', distritos);
     }
 
-    function cargarDatos(sheetData) {
-      data = sheetData;
-
-      const campos = [...new Set(data.map(d => d['Campo']).filter(Boolean))];
-      const areas = [...new Set(data.map(d => d['Área o Disciplina']).filter(Boolean))];
-      const distritos = [...new Set(data.map(d => d['Distrito']).filter(Boolean))];
-
-      agregarOpciones('campo', campos);
-      agregarOpciones('area', areas);
-      agregarOpciones('distrito', distritos);
-    }
-
-    function agregarOpciones(id, opciones) {
+    function llenarSelect(id, opciones) {
       const select = document.getElementById(id);
-      opciones.sort().forEach(op => {
-        const option = document.createElement('option');
-        option.value = op;
-        option.textContent = op;
-        select.appendChild(option);
+      opciones.forEach(op => {
+        const opt = document.createElement('option');
+        opt.value = op;
+        opt.textContent = op;
+        select.appendChild(opt);
       });
     }
 
@@ -127,41 +125,42 @@
       const area = document.getElementById('area').value;
       const distrito = document.getElementById('distrito').value;
 
-      const filtrado = data.filter(row => {
-        return (!campo || row['Campo'] === campo) &&
-               (!area || row['Área o Disciplina'] === area) &&
-               (!distrito || row['Distrito'] === distrito);
-      });
+      const filtrado = datos.filter(d =>
+        (!campo || d['Campo'] === campo) &&
+        (!area || d['Área o Disciplina'] === area) &&
+        (!distrito || d['Distrito'] === distrito)
+      );
 
       mostrarResultados(filtrado);
     }
 
-    function mostrarResultados(rows) {
+    function mostrarResultados(resultados) {
       const contenedor = document.getElementById('resultados');
       contenedor.innerHTML = '';
 
-      if (rows.length === 0) {
-        contenedor.innerHTML = '<p>No se encontraron resultados.</p>';
+      if (resultados.length === 0) {
+        contenedor.innerHTML = '<p>No se encontraron resultados para los filtros seleccionados.</p>';
         return;
       }
 
-      rows.forEach(row => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <p><strong>Institución:</strong> ${row['Institución']}</p>
-          <p><strong>Carrera:</strong> ${row['Carrera']}</p>
-          <p><strong>Unidad Curricular:</strong> ${row['Unidad Curricular']}</p>
-          <p><strong>Fecha para presentar el Proyecto:</strong> ${row['Fecha Proyecto']}</p>
-          <p><strong>Módulos:</strong> ${row['Módulos']}</p>
-          <p><strong>Revista:</strong> ${row['Revista']}</p>
-          <p><strong>Día y Horario:</strong> ${row['Día y Horario']}</p>
-          <a href="${row['Ubicación']}" target="_blank">Ubicación</a>
-          <a href="${row['Comunicado']}" target="_blank">Comunicado</a>
+      resultados.forEach(d => {
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'card';
+        tarjeta.innerHTML = `
+          <p><strong>Institución:</strong> ${d['Institución']}</p>
+          <p><strong>Carrera:</strong> ${d['Carrera']}</p>
+          <p><strong>Unidad Curricular:</strong> ${d['Unidad Curricular']}</p>
+          <p><strong>Fecha para presentar el Proyecto:</strong> ${d['Fecha Proyecto']}</p>
+          <p><strong>Módulos:</strong> ${d['Módulos']}</p>
+          <p><strong>Revista:</strong> ${d['Revista']}</p>
+          <p><strong>Día y Horario:</strong> ${d['Día y Horario']}</p>
+          <a href="${d['Ubicación']}" target="_blank">Ubicación</a>
+          <a href="${d['Comunicado']}" target="_blank">Comunicado</a>
         `;
-        contenedor.appendChild(card);
+        contenedor.appendChild(tarjeta);
       });
     }
   </script>
+
 </body>
 </html>
