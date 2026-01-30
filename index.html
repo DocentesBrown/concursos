@@ -372,6 +372,52 @@ function descargarICS(filename, contenido) {
       }
     }
 
+    
+    // === Favoritos (localStorage) ===
+    const FAVORITOS_KEY = "favoritos_concursos";
+
+    function getFavoritos() {
+      try { return JSON.parse(localStorage.getItem(FAVORITOS_KEY) || "[]"); }
+      catch(e){ return []; }
+    }
+
+    function setFavoritos(arr) {
+      localStorage.setItem(FAVORITOS_KEY, JSON.stringify(arr || []));
+    }
+
+    function buildOfertaId(oferta){
+      // ID estable (no depende del orden): combina campos típicos + N/O para diferenciar
+      const colEntregaDesde = headers && headers.length > 13 ? headers[13] : null; // N
+      const colEntregaHasta = headers && headers.length > 14 ? headers[14] : null; // O
+      const n = colEntregaDesde ? (oferta[colEntregaDesde] || "") : "";
+      const o = colEntregaHasta ? (oferta[colEntregaHasta] || "") : "";
+      const parts = [
+        oferta["Unidad Curricular"] || "",
+        oferta["Institución"] || "",
+        oferta["Distrito"] || "",
+        oferta["Carrera"] || "",
+        n, o
+      ];
+      return parts.map(x => String(x).trim()).join(" | ");
+    }
+
+    function isFavorite(id){
+      return getFavoritos().includes(id);
+    }
+
+    function toggleFavorite(id){
+      let favs = getFavoritos();
+      if(favs.includes(id)){
+        favs = favs.filter(x => x !== id);
+      } else {
+        favs.unshift(id);
+      }
+      setFavoritos(favs);
+      // Re-render respetando filtros actuales
+      filtrarOfertas();
+    }
+
+
     function filtrarOfertas() {
       const campo = document.getElementById("campoSelect").value;
       const titulo = document.getElementById("tituloSelect").value;
@@ -383,6 +429,17 @@ function descargarICS(filename, contenido) {
         return (!campo || row["Campo"] === campo) &&
                (!titulo || row["Título"] === titulo) &&
                (!distrito || row["Distrito"] === distrito);
+      });
+
+      // IDs + ordenar favoritos primero
+      const favs = getFavoritos();
+      ofertas.forEach(o => { o.__id = buildOfertaId(o); });
+      ofertas.sort((a,b) => {
+        const af = favs.includes(a.__id) ? 1 : 0;
+        const bf = favs.includes(b.__id) ? 1 : 0;
+        if (af !== bf) return bf - af; // favoritos arriba
+        // orden secundario estable por Unidad Curricular
+        return String(a["Unidad Curricular"]||"").localeCompare(String(b["Unidad Curricular"]||""), "es", {sensitivity:"base"});
       });
 
       if (ofertas.length === 0) {
@@ -417,20 +474,28 @@ function descargarICS(filename, contenido) {
 *Día y Horario:* ${oferta["Día y Horario"]}${inscripcionTexto ? `\n*Fechas de inscripción:* ${inscripcionTexto}` : ""}`;
 
           card.innerHTML = `
-            <h2 class="text-xl font-bold mb-2" style="color: #24496e">${oferta["Unidad Curricular"]}</h2>
+            <div class="flex items-start justify-between gap-3">
+              <h2 class="text-xl font-bold mb-2" style="color: #24496e">${oferta["Unidad Curricular"]}</h2>
+              <button type="button"
+                onclick="toggleFavorite('${oferta.__id}')"
+                class="text-2xl leading-none select-none -mt-1"
+                title="Agregar a favoritos"
+                aria-label="Favorito">
+                ${isFavorite(oferta.__id) ? "★" : "☆"}
+              </button>
+            </div>
             <p><strong>Institución:</strong> ${oferta["Institución"]}</p>
             <p><strong>Distrito:</strong> ${oferta["Distrito"]}</p>
             <p><strong>Carrera:</strong> ${oferta["Carrera"]}</p>
             <p><strong>Modalidad:</strong> ${modalidad}</p>
-            <p><strong>Entrega del Proyecto:</strong> ${entregaTexto}</p>
+            <p><strong>Entrega del Proyecto e inscripción:</strong> ${entregaTexto}</p>
             <p><strong>Módulos:</strong> ${oferta["Módulos"]}</p>
             <p><strong>Revista:</strong> ${oferta["Revista"]}</p>
             <p><strong>Día y Horario:</strong> ${oferta["Día y Horario"]}</p>
-            ${inscripcionTexto ? `<p><strong>Fechas de inscripción:</strong> ${inscripcionTexto}</p>` : ""}
             <div class="mt-4 flex gap-4 flex-wrap">
               <a href="${oferta["Ubicación"]}" target="_blank" class="bg-[#2d8bba] hover:bg-[#236d92] text-white px-3 py-1 rounded">Ubicación</a>
               <a href="${oferta["Comunicado"]}" download class="bg-[#4d3069] hover:bg-[#3a2552] text-white px-3 py-1 rounded">Comunicado</a>
-              <button onclick="agendarInscripcion('${ofertaEncoded}')" class="bg-[#24496e] hover:bg-[#1b3552] text-white px-3 py-1 rounded">Calendario</button>
+              <button onclick="agendarInscripcion('${ofertaEncoded}')" class="bg-[#24496e] hover:bg-[#1b3552] text-white px-3 py-1 rounded">Agregar Recordatorio</button>
               <button onclick="compartirTexto(\`${textoCompartir}\`)" class="bg-[#da6863] hover:bg-[#b44e4b] text-white px-3 py-1 rounded">Compartir</button>
             </div>
           `;
