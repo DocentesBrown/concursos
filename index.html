@@ -71,7 +71,39 @@
   }
   .btn-primary:active{ transform: translateY(1px); }
 
-  .chip{
+  
+  /* Info rows (same hierarchy for all key fields) */
+  .info-row{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+  }
+  .info-ico{
+    margin-top: 2px;
+    width: 22px;
+    flex: 0 0 22px;
+    text-align:center;
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+  .info-title{
+    font-weight: 700;
+    font-size: .98rem;
+    line-height: 1.2;
+    letter-spacing: .1px;
+  }
+  .info-value{
+    opacity: .90;
+    font-size: .98rem;
+    line-height: 1.3;
+    margin-top: 2px;
+    word-break: break-word;
+  }
+  @media (min-width: 768px){
+    .info-title, .info-value{ font-size: 1rem; }
+  }
+
+.chip{
     display:inline-flex;
     align-items:center;
     gap:.4rem;
@@ -685,11 +717,38 @@ if (ofertasVisibles.length === 0) {
                 <h2 class="text-[1.05rem] md:text-xl font-extrabold leading-snug" style="color: var(--c-primary)">
                   ${oferta["Unidad Curricular"]}
                 </h2>
-                <div class="mt-2 grid gap-1 text-[0.98rem] md:text-base">
-                  <div class="opacity-90"><span class="font-semibold">🏫 Institución:</span> ${oferta["Institución"] || "—"}</div>
-                  <div class="opacity-90"><span class="font-semibold">📍 Distrito:</span> ${oferta["Distrito"] || "—"}</div>
-                  <div class="opacity-90"><span class="font-semibold">🎓 Carrera:</span> ${oferta["Carrera"] || "—"}</div>
-                  <div class="opacity-90"><span class="font-semibold">🧑‍💻 Modalidad:</span> ${modalidad}</div>
+                <div class="mt-3 grid gap-2">
+                  <div class="info-row">
+                    <div class="info-ico">🏫</div>
+                    <div class="min-w-0">
+                      <div class="info-title">Institución</div>
+                      <div class="info-value">${oferta["Institución"] || "—"}</div>
+                    </div>
+                  </div>
+
+                  <div class="info-row">
+                    <div class="info-ico">📍</div>
+                    <div class="min-w-0">
+                      <div class="info-title">Distrito</div>
+                      <div class="info-value">${oferta["Distrito"] || "—"}</div>
+                    </div>
+                  </div>
+
+                  <div class="info-row">
+                    <div class="info-ico">🎓</div>
+                    <div class="min-w-0">
+                      <div class="info-title">Carrera</div>
+                      <div class="info-value">${oferta["Carrera"] || "—"}</div>
+                    </div>
+                  </div>
+
+                  <div class="info-row">
+                    <div class="info-ico">🧑‍💻</div>
+                    <div class="min-w-0">
+                      <div class="info-title">Modalidad</div>
+                      <div class="info-value">${modalidad}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -703,20 +762,20 @@ if (ofertasVisibles.length === 0) {
               </button>
             </div>
 
-            <div class="mt-4 grid gap-2 text-[0.95rem]">
-              <div class="flex items-start gap-3">
-                <div class="mt-0.5">🗓️</div>
+            <div class="mt-4 grid gap-2">
+              <div class="info-row">
+                <div class="info-ico">🗓️</div>
                 <div class="min-w-0">
-                  <div class="font-semibold">Entrega del Proyecto e inscripción</div>
-                  <div class="opacity-90">${entregaTexto}</div>
+                  <div class="info-title">Entrega del Proyecto e inscripción</div>
+                  <div class="info-value">${entregaTexto}</div>
                 </div>
               </div>
 
-              <div class="flex items-start gap-3">
-                <div class="mt-0.5">⏱️</div>
+              <div class="info-row">
+                <div class="info-ico">⏱️</div>
                 <div class="min-w-0">
-                  <div class="font-semibold">Día y horario</div>
-                  <div class="opacity-90">${oferta["Día y Horario"]}</div>
+                  <div class="info-title">Día y horario</div>
+                  <div class="info-value">${oferta["Día y Horario"]}</div>
                 </div>
               </div>
 
