@@ -81,6 +81,7 @@
   <script>
     const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRyqgjE9sIIl7fEjrmVzsQo7lCc8w6Nw4EKqcbrqsT-gUDXt_YHn4tHIZJJ7eAEr9JNlJvTW16r7Fyk/pub?output=csv";
     let datos = [];
+    let headers = [];
 
     // Helpers (sin tocar la lógica de filtros)
     function getValueCI(obj, nombreColumna) {
@@ -203,7 +204,70 @@
       ].join("\r\n");
     }
 
-    function descargarICS(filename, contenido) {
+    
+    function buildICSRange({ title, description, startDate, endDate }) {
+      // Evento de día completo desde startDate hasta endDate (inclusive). DTEND es exclusivo.
+      const dtStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const dtEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      dtEnd.setDate(dtEnd.getDate() + 1);
+
+      const dtstamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      const uid = `${Date.now()}-${Math.random().toString(16).slice(2)}@docentesbrown`;
+
+      return [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Docentes Brown//Concursos Vigentes//ES",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTAMP:${dtstamp}`,
+        `SUMMARY:${escapeICS(title)}`,
+        `DESCRIPTION:${escapeICS(description)}`,
+        `DTSTART;VALUE=DATE:${formatICSDate(dtStart)}`,
+        `DTEND;VALUE=DATE:${formatICSDate(dtEnd)}`,
+        "BEGIN:VALARM",
+        "TRIGGER:-P1D",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:Recordatorio inscripción",
+        "END:VALARM",
+        "END:VEVENT",
+        "END:VCALENDAR"
+      ].join("\r\n");
+    }
+
+    function parsearFechaCelda(valor) {
+      // Acepta Date, 'YYYY-MM-DD', 'DD/MM/YYYY', 'DD-MM-YYYY'
+      if (!valor) return null;
+      if (valor instanceof Date && !isNaN(valor)) return valor;
+
+      const s = String(valor).trim();
+      if (!s) return null;
+
+      // ISO
+      let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (m) {
+        const y = parseInt(m[1], 10), mo = parseInt(m[2], 10) - 1, d = parseInt(m[3], 10);
+        const dt = new Date(y, mo, d);
+        return isNaN(dt) ? null : dt;
+      }
+
+      // LatAm
+      m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (m) {
+        const d = parseInt(m[1], 10), mo = parseInt(m[2], 10) - 1, y = parseInt(m[3], 10);
+        const dt = new Date(y, mo, d);
+        return isNaN(dt) ? null : dt;
+      }
+
+      // Fallback Date.parse
+      const t = Date.parse(s);
+      if (!isNaN(t)) return new Date(t);
+
+      return null;
+    }
+function descargarICS(filename, contenido) {
       const blob = new Blob([contenido], { type: "text/calendar;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -218,16 +282,21 @@
     function agendarInscripcion(ofertaEncoded) {
       try {
         const oferta = JSON.parse(decodeURIComponent(ofertaEncoded));
-        const insc = obtenerFechasInscripcionTexto(oferta);
-        const fechas = parsearFechasDeTexto(insc);
+        // Fechas de inscripción: columna N (desde) y O (hasta)
+        const colDesde = headers && headers.length > 13 ? headers[13] : null; // N
+        const colHasta = headers && headers.length > 14 ? headers[14] : null; // O
+        const desdeRaw = colDesde ? oferta[colDesde] : null;
+        const hastaRaw = colHasta ? oferta[colHasta] : null;
 
-        // Si hay varias fechas, usamos la ÚLTIMA como "cierre" (recordatorio el día anterior)
-        const objetivo = fechas.length ? fechas[fechas.length - 1] : null;
+        const desde = parsearFechaCelda(desdeRaw);
+        const hasta = parsearFechaCelda(hastaRaw) || desde;
 
-        if (!objetivo) {
-          alert("No pude detectar una fecha de inscripción en esta oferta. Revisá que en la Sheet haya una columna con fechas (ej: 'Fechas de inscripción').");
+        if (!desde) {
+          alert("No pude leer la FECHA DESDE (columna N) para esta oferta. Revisá que tenga un formato tipo 2026-01-30 o 30/01/2026.");
           return;
         }
+
+        const insc = `${desdeRaw || "—"} a ${hastaRaw || desdeRaw || "—"}`;
 
         const titulo = `Inscripción: ${getValueCI(oferta, "Unidad Curricular") || "Concurso"}`;
         const desc = [
@@ -237,7 +306,7 @@
           `Fechas de inscripción: ${insc || "—"}`
         ].join("\n");
 
-        const ics = buildICS({ title: titulo, description: desc, date: objetivo });
+        const ics = buildICSRange({ title: titulo, description: desc, startDate: desde, endDate: hasta });
         const fname = `inscripcion_${(getValueCI(oferta, "Unidad Curricular") || "concurso").replace(/[^a-z0-9]+/gi, "_").toLowerCase()}.ics`;
         descargarICS(fname, ics);
       } catch (e) {
@@ -250,6 +319,7 @@
       .then(response => response.text())
       .then(csvText => {
         const parsed = Papa.parse(csvText, { header: true });
+        headers = (parsed.meta && parsed.meta.fields) ? parsed.meta.fields : [];
         datos = parsed.data.filter(row => typeof row === 'object' && row["Campo"] && row["Título"] && row["Distrito"]);
         cargarCampos();
       });
@@ -326,13 +396,22 @@
           const inscripcionTexto = obtenerFechasInscripcionTexto(oferta);
           const ofertaEncoded = encodeURIComponent(JSON.stringify(oferta));
 
+          // Entrega del Proyecto: columnas N (desde) y O (hasta)
+          const colEntregaDesde = headers && headers.length > 13 ? headers[13] : null; // N
+          const colEntregaHasta = headers && headers.length > 14 ? headers[14] : null; // O
+          const entregaDesdeRaw = colEntregaDesde ? oferta[colEntregaDesde] : "";
+          const entregaHastaRaw = colEntregaHasta ? oferta[colEntregaHasta] : "";
+          const entregaTexto = (entregaDesdeRaw || entregaHastaRaw)
+            ? `del ${entregaDesdeRaw || "—"} al ${entregaHastaRaw || entregaDesdeRaw || "—"}`
+            : "—";
+
           const textoCompartir =
 `*Unidad Curricular:* ${oferta["Unidad Curricular"]}
 *Institución:* ${oferta["Institución"]}
 *Distrito:* ${oferta["Distrito"]}
 *Carrera:* ${oferta["Carrera"]}
 *Modalidad:* ${modalidad}
-*Fecha de entrega del Proyecto:* ${oferta["Fecha de entrega del Proyecto"]}
+*Entrega del Proyecto:* ${entregaTexto}
 *Módulos:* ${oferta["Módulos"]}
 *Revista:* ${oferta["Revista"]}
 *Día y Horario:* ${oferta["Día y Horario"]}${inscripcionTexto ? `\n*Fechas de inscripción:* ${inscripcionTexto}` : ""}`;
@@ -343,7 +422,7 @@
             <p><strong>Distrito:</strong> ${oferta["Distrito"]}</p>
             <p><strong>Carrera:</strong> ${oferta["Carrera"]}</p>
             <p><strong>Modalidad:</strong> ${modalidad}</p>
-            <p><strong>Fecha de entrega del Proyecto:</strong> ${oferta["Fecha de entrega del Proyecto"]}</p>
+            <p><strong>Entrega del Proyecto:</strong> ${entregaTexto}</p>
             <p><strong>Módulos:</strong> ${oferta["Módulos"]}</p>
             <p><strong>Revista:</strong> ${oferta["Revista"]}</p>
             <p><strong>Día y Horario:</strong> ${oferta["Día y Horario"]}</p>
