@@ -4,8 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Concursos Vigentes</title>
+
+  <!-- Íconos para navegador y acceso directo -->
+  <link rel="icon" href="icono.png" type="image/png">
+  <link rel="apple-touch-icon" href="icono.png">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Librerías -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Estilos -->
   <style>
     body {
       background-color: #f3efdc;
@@ -14,13 +23,25 @@
     select, button {
       color: #4d3069;
     }
+    .contador {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      background-color: #da6863;
+      color: white;
+      display: inline-block;
+      padding: 0.4rem 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
   </style>
 </head>
 <body class="min-h-screen p-4">
   <div class="max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold text-center mb-1" style="color: #24496e">Concursos Vigentes</h1>
-    <p class="text-center text-sm mb-6">Desarrollado y optimizado por Docentes Brown</p>
-
+    <p class="text-center text-sm mb-6">
+  Desarrollado y optimizado por Docentes Brown. Si tu <strong>carrera o profesión</strong> no aparece en el filtro automáticamente, es porque <strong>no hay</strong> concursos informados.
+  Seguinos en Instagram <a href="https://www.instagram.com/docentesbrown" target="_blank" class="text-blue-600 hover:underline">@docentesbrown</a>.
+    </p>
     <!-- Filtros -->
     <div class="space-y-4 mb-6">
       <select id="campoSelect" class="w-full p-2 rounded border border-[#4d3069]" onchange="actualizarTitulos()">
@@ -40,7 +61,7 @@
       BUSCAR OFERTAS ACTIVAS
     </button>
 
-    <!-- Contenedor de resultados -->
+    <!-- Resultados -->
     <div id="resultados" class="space-y-4"></div>
 
     <!-- Botón de Cafecito -->
@@ -49,12 +70,181 @@
         ☕ Invitanos un Cafecito
       </a>
     </div>
+
+    <!-- Contador de visitas -->
+    <div class="text-center mt-10">
+      <span class="contador">Docentes que pasaron por acá: <span id="contador">...</span></span>
+    </div>
   </div>
 
+  <!-- Scripts -->
   <script>
     const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRyqgjE9sIIl7fEjrmVzsQo7lCc8w6Nw4EKqcbrqsT-gUDXt_YHn4tHIZJJ7eAEr9JNlJvTW16r7Fyk/pub?output=csv";
-
     let datos = [];
+
+    // Helpers (sin tocar la lógica de filtros)
+    function getValueCI(obj, nombreColumna) {
+      const key = Object.keys(obj || {}).find(k => (k || "").trim().toLowerCase() === nombreColumna.toLowerCase());
+      const val = key ? obj[key] : "";
+      return (val || "").toString().trim();
+    }
+
+    function obtenerFechasInscripcionTexto(oferta) {
+      // Intenta encontrar "Fechas de inscripción" aunque el encabezado varíe
+      const posibles = [
+        "Fechas de inscripción",
+        "Fechas Inscripción",
+        "Inscripción",
+        "Inscripcion",
+        "Inscripción desde",
+        "Inscripcion desde",
+        "Inscripción hasta",
+        "Inscripcion hasta",
+        "Fecha de inscripción",
+        "Fecha de inscripcion",
+        "Cierre de inscripción",
+        "Cierre de inscripcion"
+      ];
+
+      // 1) Campo directo por encabezado
+      for (const nombre of posibles) {
+        const v = getValueCI(oferta, nombre);
+        if (v) return v;
+      }
+
+      // 2) Si no hay encabezado exacto, buscá por contains en keys
+      const keys = Object.keys(oferta || {});
+      const k = keys.find(k => (k || "").toLowerCase().includes("inscrip"));
+      if (k && oferta[k]) return (oferta[k] || "").toString().trim();
+
+      return "";
+    }
+
+    function parsearFechasDeTexto(texto) {
+      if (!texto) return [];
+      const t = texto.toString();
+
+      // Formatos: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd
+      const re = /(\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b)|(\b\d{4}-\d{2}-\d{2}\b)/g;
+      const matches = t.match(re) || [];
+      const fechas = [];
+
+      for (const raw of matches) {
+        const s = raw.trim();
+        let d = null;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+          const [y, m, day] = s.split("-").map(Number);
+          d = new Date(y, m - 1, day);
+        } else {
+          const parts = s.split(/[\/\-]/).map(Number);
+          if (parts.length === 3) {
+            let [day, m, y] = parts;
+            if (y < 100) y = 2000 + y;
+            d = new Date(y, m - 1, day);
+          }
+        }
+
+        if (d && !isNaN(d.getTime())) fechas.push(d);
+      }
+
+      // Ordenadas
+      fechas.sort((a, b) => a.getTime() - b.getTime());
+      return fechas;
+    }
+
+    function formatICSDate(d) {
+      // YYYYMMDD
+      const y = d.getFullYear().toString().padStart(4, "0");
+      const m = (d.getMonth() + 1).toString().padStart(2, "0");
+      const day = d.getDate().toString().padStart(2, "0");
+      return `${y}${m}${day}`;
+    }
+
+    function escapeICS(text) {
+      return (text || "")
+        .toString()
+        .replace(/\\/g, "\\\\")
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,");
+    }
+
+    function buildICS({ title, description, date }) {
+      // Evento de día completo en "date", termina al día siguiente
+      const dtStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dtEnd = new Date(dtStart.getTime());
+      dtEnd.setDate(dtEnd.getDate() + 1);
+
+      const dtstamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      const uid = `${Date.now()}-${Math.random().toString(16).slice(2)}@docentesbrown`;
+
+      return [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Docentes Brown//Concursos Vigentes//ES",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTAMP:${dtstamp}`,
+        `SUMMARY:${escapeICS(title)}`,
+        `DESCRIPTION:${escapeICS(description)}`,
+        `DTSTART;VALUE=DATE:${formatICSDate(dtStart)}`,
+        `DTEND;VALUE=DATE:${formatICSDate(dtEnd)}`,
+        "BEGIN:VALARM",
+        "TRIGGER:-P1D",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:Recordatorio inscripción",
+        "END:VALARM",
+        "END:VEVENT",
+        "END:VCALENDAR"
+      ].join("\r\n");
+    }
+
+    function descargarICS(filename, contenido) {
+      const blob = new Blob([contenido], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function agendarInscripcion(ofertaEncoded) {
+      try {
+        const oferta = JSON.parse(decodeURIComponent(ofertaEncoded));
+        const insc = obtenerFechasInscripcionTexto(oferta);
+        const fechas = parsearFechasDeTexto(insc);
+
+        // Si hay varias fechas, usamos la ÚLTIMA como "cierre" (recordatorio el día anterior)
+        const objetivo = fechas.length ? fechas[fechas.length - 1] : null;
+
+        if (!objetivo) {
+          alert("No pude detectar una fecha de inscripción en esta oferta. Revisá que en la Sheet haya una columna con fechas (ej: 'Fechas de inscripción').");
+          return;
+        }
+
+        const titulo = `Inscripción: ${getValueCI(oferta, "Unidad Curricular") || "Concurso"}`;
+        const desc = [
+          `Institución: ${getValueCI(oferta, "Institución")}`,
+          `Distrito: ${getValueCI(oferta, "Distrito")}`,
+          `Carrera: ${getValueCI(oferta, "Carrera")}`,
+          `Fechas de inscripción: ${insc || "—"}`
+        ].join("\n");
+
+        const ics = buildICS({ title: titulo, description: desc, date: objetivo });
+        const fname = `inscripcion_${(getValueCI(oferta, "Unidad Curricular") || "concurso").replace(/[^a-z0-9]+/gi, "_").toLowerCase()}.ics`;
+        descargarICS(fname, ics);
+      } catch (e) {
+        console.error(e);
+        alert("Hubo un problema al crear el evento de calendario.");
+      }
+    }
 
     fetch(sheetURL)
       .then(response => response.text())
@@ -132,28 +322,36 @@
           const card = document.createElement("div");
           card.className = "bg-white rounded-xl shadow p-4";
 
+          const modalidad = getValueCI(oferta, "Modalidad") || "—";
+          const inscripcionTexto = obtenerFechasInscripcionTexto(oferta);
+          const ofertaEncoded = encodeURIComponent(JSON.stringify(oferta));
+
           const textoCompartir =
 `*Unidad Curricular:* ${oferta["Unidad Curricular"]}
 *Institución:* ${oferta["Institución"]}
 *Distrito:* ${oferta["Distrito"]}
 *Carrera:* ${oferta["Carrera"]}
+*Modalidad:* ${modalidad}
 *Fecha de entrega del Proyecto:* ${oferta["Fecha de entrega del Proyecto"]}
 *Módulos:* ${oferta["Módulos"]}
 *Revista:* ${oferta["Revista"]}
-*Día y Horario:* ${oferta["Día y Horario"]}`;
+*Día y Horario:* ${oferta["Día y Horario"]}${inscripcionTexto ? `\n*Fechas de inscripción:* ${inscripcionTexto}` : ""}`;
 
           card.innerHTML = `
             <h2 class="text-xl font-bold mb-2" style="color: #24496e">${oferta["Unidad Curricular"]}</h2>
             <p><strong>Institución:</strong> ${oferta["Institución"]}</p>
             <p><strong>Distrito:</strong> ${oferta["Distrito"]}</p>
             <p><strong>Carrera:</strong> ${oferta["Carrera"]}</p>
+            <p><strong>Modalidad:</strong> ${modalidad}</p>
             <p><strong>Fecha de entrega del Proyecto:</strong> ${oferta["Fecha de entrega del Proyecto"]}</p>
             <p><strong>Módulos:</strong> ${oferta["Módulos"]}</p>
             <p><strong>Revista:</strong> ${oferta["Revista"]}</p>
             <p><strong>Día y Horario:</strong> ${oferta["Día y Horario"]}</p>
+            ${inscripcionTexto ? `<p><strong>Fechas de inscripción:</strong> ${inscripcionTexto}</p>` : ""}
             <div class="mt-4 flex gap-4 flex-wrap">
               <a href="${oferta["Ubicación"]}" target="_blank" class="bg-[#2d8bba] hover:bg-[#236d92] text-white px-3 py-1 rounded">Ubicación</a>
               <a href="${oferta["Comunicado"]}" download class="bg-[#4d3069] hover:bg-[#3a2552] text-white px-3 py-1 rounded">Comunicado</a>
+              <button onclick="agendarInscripcion('${ofertaEncoded}')" class="bg-[#24496e] hover:bg-[#1b3552] text-white px-3 py-1 rounded">Calendario</button>
               <button onclick="compartirTexto(\`${textoCompartir}\`)" class="bg-[#da6863] hover:bg-[#b44e4b] text-white px-3 py-1 rounded">Compartir</button>
             </div>
           `;
@@ -168,13 +366,23 @@
     function compartirTexto(texto) {
       const mensaje = encodeURIComponent(texto);
       const urlWhatsApp = `https://wa.me/?text=${mensaje}`;
-
       window.open(urlWhatsApp, "_blank");
 
       navigator.clipboard.writeText(texto).then(() => {
         alert("Texto copiado al portapapeles. También se abrió WhatsApp si está disponible.");
       });
     }
+
+    // Contador de visitas
+    fetch("https://script.google.com/macros/s/AKfycbxbourZ_L9QNmwuAgMhKSBr3fyOfVcQkSyeCNarDcQgJHugZSktyZ7KlASlYnVm2EkCcg/exec")
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("contador").textContent = data;
+      })
+      .catch(error => {
+        console.error("Error al obtener el contador:", error);
+        document.getElementById("contador").textContent = "Error";
+      });
   </script>
 </body>
 </html>
