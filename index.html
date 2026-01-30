@@ -33,7 +33,38 @@
       border-radius: 12px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-  </style>
+  
+    /* Botón flotante Favoritos */
+    #favFab{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 18px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.18);
+      background: #24496e;
+      color: #ffffff;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #favFab .pill{
+      background: rgba(255,255,255,.18);
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-weight: 800;
+      font-size: .85rem;
+    }
+    #favFab[data-active="true"]{
+      background: #da6863;
+    }
+</style>
 </head>
 <body class="min-h-screen p-4">
   <div class="max-w-4xl mx-auto">
@@ -322,6 +353,7 @@ function descargarICS(filename, contenido) {
         headers = (parsed.meta && parsed.meta.fields) ? parsed.meta.fields : [];
         datos = parsed.data.filter(row => typeof row === 'object' && row["Campo"] && row["Título"] && row["Distrito"]);
         cargarCampos();
+        updateFavFab();
       });
 
     function cargarCampos() {
@@ -376,6 +408,32 @@ function descargarICS(filename, contenido) {
     // === Favoritos (localStorage) ===
     const FAVORITOS_KEY = "favoritos_concursos";
 
+    let mostrarSoloFavoritos = false;
+
+    function toggleFavoritosView(){
+      mostrarSoloFavoritos = !mostrarSoloFavoritos;
+      updateFavFab();
+      filtrarOfertas();
+      const res = document.getElementById("resultados");
+      if(res) window.scrollTo({ top: Math.max(0, res.offsetTop - 10), behavior: "smooth" });
+    }
+
+    function updateFavFab(){
+      const btn = document.getElementById("favFab");
+      if(!btn) return;
+
+      const favs = getFavoritos();
+      const countEl = btn.querySelector(".count");
+      if(countEl) countEl.textContent = String(favs.length);
+
+      btn.dataset.active = mostrarSoloFavoritos ? "true" : "false";
+      const labelEl = btn.querySelector(".label");
+      if(labelEl) labelEl.textContent = mostrarSoloFavoritos ? "Ver todo" : "Solo favoritos";
+
+      // Ocultar si no hay favoritos
+      btn.style.display = favs.length > 0 ? "flex" : "none";
+    }
+
     function getFavoritos() {
       try { return JSON.parse(localStorage.getItem(FAVORITOS_KEY) || "[]"); }
       catch(e){ return []; }
@@ -413,6 +471,7 @@ function descargarICS(filename, contenido) {
         favs.unshift(id);
       }
       setFavoritos(favs);
+      updateFavFab();
       // Re-render respetando filtros actuales
       filtrarOfertas();
     }
@@ -434,18 +493,31 @@ function descargarICS(filename, contenido) {
       // IDs + ordenar favoritos primero
       const favs = getFavoritos();
       ofertas.forEach(o => { o.__id = buildOfertaId(o); });
-      ofertas.sort((a,b) => {
-        const af = favs.includes(a.__id) ? 1 : 0;
-        const bf = favs.includes(b.__id) ? 1 : 0;
-        if (af !== bf) return bf - af; // favoritos arriba
+
+      // Si está activado "Solo favoritos", filtramos acá
+      let ofertasVisibles = ofertas;
+      if (mostrarSoloFavoritos) {
+        ofertasVisibles = ofertas.filter(o => favs.includes(o.__id));
+      }
+
+      // Orden: favoritos primero y, si ambos son favoritos, respeta el orden guardado (más reciente arriba)
+      ofertasVisibles.sort((a,b) => {
+        const ai = favs.indexOf(a.__id);
+        const bi = favs.indexOf(b.__id);
+        const aFav = ai !== -1;
+        const bFav = bi !== -1;
+
+        if (aFav && bFav) return ai - bi; // respeta orden del array favs (0 = más arriba)
+        if (aFav !== bFav) return aFav ? -1 : 1;
+
         // orden secundario estable por Unidad Curricular
         return String(a["Unidad Curricular"]||"").localeCompare(String(b["Unidad Curricular"]||""), "es", {sensitivity:"base"});
       });
 
-      if (ofertas.length === 0) {
+if (ofertasVisibles.length === 0) {
         resultadosDiv.innerHTML = "<p class='text-center text-gray-500'>No se encontraron ofertas activas.</p>";
       } else {
-        ofertas.forEach(oferta => {
+        ofertasVisibles.forEach(oferta => {
           const card = document.createElement("div");
           card.className = "bg-white rounded-xl shadow p-4";
 
@@ -505,6 +577,7 @@ function descargarICS(filename, contenido) {
       }
 
       document.getElementById("cafecitoBtnContainer").classList.remove("hidden");
+      updateFavFab();
     }
 
     function compartirTexto(texto) {
@@ -528,5 +601,12 @@ function descargarICS(filename, contenido) {
         document.getElementById("contador").textContent = "Error";
       });
   </script>
+
+  <!-- Botón flotante: Favoritos -->
+  <button id="favFab" type="button" onclick="toggleFavoritosView()" data-active="false" style="display:none">
+    <span class="text-2xl leading-none">☆</span>
+    <span class="label">Solo favoritos</span>
+    <span class="pill">★ <span class="count">0</span></span>
+  </button>
 </body>
 </html>
