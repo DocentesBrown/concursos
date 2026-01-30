@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Concursos Vigentes</title>
+  <meta name="theme-color" content="#24496e" />
 
   <!-- Íconos para navegador y acceso directo -->
   <link rel="icon" href="icono.png" type="image/png">
@@ -16,88 +17,207 @@
 
   <!-- Estilos -->
   <style>
-    body {
-      background-color: #f3efdc;
-      color: #4d3069;
-    }
-    select, button {
-      color: #4d3069;
-    }
-    .contador {
-      margin-top: 2rem;
-      font-size: 0.9rem;
-      background-color: #da6863;
-      color: white;
-      display: inline-block;
-      padding: 0.4rem 1rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-  
-    /* Botón flotante Favoritos */
-    #favFab{
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 18px;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      border-radius: 9999px;
-      box-shadow: 0 10px 25px rgba(0,0,0,.18);
-      background: #24496e;
-      color: #ffffff;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    #favFab .pill{
-      background: rgba(255,255,255,.18);
-      padding: 3px 10px;
-      border-radius: 9999px;
-      font-weight: 800;
-      font-size: .85rem;
-    }
-    #favFab[data-active="true"]{
-      background: #da6863;
-    }
+  :root{
+    --c-ink:#2c1d3b;
+    --c-primary:#24496e;
+    --c-secondary:#4d3069;
+    --c-accent:#3d8fb0;
+    --c-warm:#da6863;
+    --c-bg:#f3efdc;
+    --card:#ffffff;
+  }
+
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 800px at 20% -10%, rgba(61,143,176,.22), transparent 60%),
+      radial-gradient(900px 600px at 110% 20%, rgba(218,104,99,.18), transparent 55%),
+      radial-gradient(900px 600px at 40% 120%, rgba(77,48,105,.14), transparent 55%),
+      var(--c-bg);
+    color: var(--c-ink);
+  }
+
+  /* Inputs */
+  select{
+    background: rgba(255,255,255,.9);
+    border: 1px solid rgba(36,73,110,.25);
+    border-radius: 16px;
+    padding: 14px 14px;
+    box-shadow: 0 8px 24px rgba(36,73,110,.08);
+    outline: none;
+  }
+  select:focus{
+    border-color: rgba(61,143,176,.8);
+    box-shadow: 0 0 0 4px rgba(61,143,176,.20), 0 12px 30px rgba(36,73,110,.12);
+  }
+
+  /* Soft card */
+  .soft-card{
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(36,73,110,.10);
+    border-radius: 24px;
+    box-shadow: 0 18px 50px rgba(36,73,110,.10);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Fancy button */
+  .btn-primary{
+    background: linear-gradient(135deg, rgba(36,73,110,1), rgba(61,143,176,1));
+    color:#fff;
+    border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(36,73,110,.22);
+  }
+  .btn-primary:active{ transform: translateY(1px); }
+
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:.4rem;
+    padding:.35rem .65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(36,73,110,.14);
+    background: rgba(255,255,255,.75);
+    font-size: .80rem;
+  }
+
+  /* Floating favorites FAB */
+  #favFab{
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 16px;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.45);
+    background: rgba(36,73,110,.92);
+    color: #fff;
+    box-shadow: 0 18px 45px rgba(36,73,110,.28);
+    backdrop-filter: blur(10px);
+  }
+  #favFab .label{
+    font-weight: 700;
+    letter-spacing: .2px;
+  }
+  #favFab .pill{
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.18);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    display: inline-flex;
+    gap: 6px;
+    align-items:center;
+  }
+  #favFab[data-active="true"]{
+    background: rgba(77,48,105,.92);
+  }
+
+  /* Nice scrollbar (desktop only) */
+  @media (min-width: 768px){
+    ::-webkit-scrollbar{ width: 10px; }
+    ::-webkit-scrollbar-thumb{ background: rgba(36,73,110,.25); border-radius: 99px; }
+  }
+
+  /* Counter pill */
+  .contador{
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+    background-color: rgba(218,104,99,.95);
+    color: white;
+    display: inline-block;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgba(218,104,99,.25);
+  }
+
+  /* Subtle appear animation */
+  .fade-in{
+    animation: fadeIn .25s ease-out both;
+  }
+  @keyframes fadeIn{
+    from{ opacity:0; transform: translateY(6px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
 </style>
 </head>
-<body class="min-h-screen p-4">
-  <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-1" style="color: #24496e">Concursos Vigentes</h1>
-    <p class="text-center text-sm mb-6">
-  Desarrollado y optimizado por Docentes Brown. Si tu <strong>carrera o profesión</strong> no aparece en el filtro automáticamente, es porque <strong>no hay</strong> concursos informados.
-  Seguinos en Instagram <a href="https://www.instagram.com/docentesbrown" target="_blank" class="text-blue-600 hover:underline">@docentesbrown</a>.
-    </p>
-    <!-- Filtros -->
-    <div class="space-y-4 mb-6">
-      <select id="campoSelect" class="w-full p-2 rounded border border-[#4d3069]" onchange="actualizarTitulos()">
-        <option value="">Seleccioná un Campo</option>
-      </select>
+<body class="min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 pt-4 pb-24">
+    <!-- Header / Hero -->
+    <header class="soft-card p-5 md:p-7">
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <div class="flex items-center gap-3">
+            <img src="icono.png" alt="Docentes Brown" class="w-12 h-12 rounded-2xl shadow" />
+            <div class="min-w-0">
+              <h1 class="text-2xl md:text-3xl font-extrabold leading-tight" style="color: var(--c-primary)">
+                Concursos Vigentes
+              </h1>
+              <p class="text-sm md:text-base mt-1 opacity-85">
+                Encontrá tu oferta en segundos — rápido, claro y pensado para el celu.
+              </p>
+            </div>
+          </div>
 
-      <select id="tituloSelect" class="w-full p-2 rounded border border-[#4d3069] hidden" onchange="actualizarDistritos()">
-        <option value="">Seleccioná un Título</option>
-      </select>
+          <p class="text-[0.95rem] mt-4 leading-relaxed opacity-90">
+            Desarrollado y optimizado por <strong>Docentes Brown</strong>.
+            Si tu <strong>carrera o profesión</strong> no aparece automáticamente, es porque <strong>no hay</strong> concursos informados.
+            Seguinos en Instagram
+            <a href="https://www.instagram.com/docentesbrown" target="_blank" class="font-bold underline" style="color: var(--c-accent)">@docentesbrown</a>.
+          </p>
+        </div>
 
-      <select id="distritoSelect" class="w-full p-2 rounded border border-[#4d3069] hidden">
-        <option value="">Seleccioná un Distrito</option>
-      </select>
+        <a href="https://cafecito.app/docentesbrown" target="_blank"
+           class="hidden md:inline-flex items-center gap-2 px-4 py-3 rounded-2xl font-extrabold"
+           style="background: rgba(77,48,105,.12); border:1px solid rgba(77,48,105,.25); color: var(--c-secondary)">
+          ☕ Cafecito
+        </a>
+      </div>
+
+      <!-- Filters -->
+      <div class="mt-5 grid gap-3">
+        <div class="text-xs font-bold uppercase tracking-wider opacity-70">Filtrá y buscá</div>
+
+        <select id="campoSelect" class="w-full" onchange="actualizarTitulos()">
+          <option value="">1) Seleccioná un Campo</option>
+        </select>
+
+        <select id="tituloSelect" class="w-full hidden" onchange="actualizarDistritos()">
+          <option value="">2) Seleccioná un Título</option>
+        </select>
+
+        <select id="distritoSelect" class="w-full hidden">
+          <option value="">3) Seleccioná un Distrito</option>
+        </select>
+
+        <button onclick="filtrarOfertas()" class="btn-primary w-full font-extrabold py-4 px-4 text-base md:text-lg">
+          🔎 Buscar ofertas activas
+        </button>
+
+        <div class="flex items-center justify-between gap-3 text-xs md:text-sm opacity-80">
+          <div>Tip: marcá ⭐ y te quedan primero.</div>
+          <div class="hidden md:block">Abrí “Agregar recordatorio” para tu calendario.</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Results header -->
+    <div class="mt-6 flex items-center justify-between gap-3">
+      <h2 class="text-lg md:text-xl font-extrabold" style="color: var(--c-primary)">Resultados</h2>
+      <div class="chip">🧠 Favoritos se guardan en tu dispositivo</div>
     </div>
 
-    <button onclick="filtrarOfertas()" class="bg-[#24496e] hover:bg-[#1b3552] text-white font-semibold px-4 py-2 rounded mb-6 w-full">
-      BUSCAR OFERTAS ACTIVAS
-    </button>
-
     <!-- Resultados -->
-    <div id="resultados" class="space-y-4"></div>
+    <div id="resultados" class="mt-3 space-y-4"></div>
 
-    <!-- Botón de Cafecito -->
+    <!-- Botón de Cafecito (mobile) -->
     <div id="cafecitoBtnContainer" class="text-center mt-8 hidden">
-      <a href="https://cafecito.app/docentesbrown" target="_blank" class="inline-flex items-center bg-[#4d3069] hover:bg-[#3a2552] text-white font-bold py-2 px-4 rounded-full">
+      <a href="https://cafecito.app/docentesbrown" target="_blank"
+         class="inline-flex items-center gap-2 px-5 py-3 rounded-full font-extrabold"
+         style="background: rgba(77,48,105,.92); color:#fff; box-shadow: 0 14px 28px rgba(77,48,105,.22);">
         ☕ Invitanos un Cafecito
       </a>
     </div>
@@ -106,9 +226,14 @@
     <div class="text-center mt-10">
       <span class="contador">Docentes que pasaron por acá: <span id="contador">...</span></span>
     </div>
+
+    <div class="text-center mt-4 text-xs opacity-70">
+      Hecho con 💜 para que buscar sea un placer.
+    </div>
   </div>
 
-  <!-- Scripts -->
+  
+<!-- Scripts -->
   <script>
     const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRyqgjE9sIIl7fEjrmVzsQo7lCc8w6Nw4EKqcbrqsT-gUDXt_YHn4tHIZJJ7eAEr9JNlJvTW16r7Fyk/pub?output=csv";
     let datos = [];
@@ -515,11 +640,17 @@ function descargarICS(filename, contenido) {
       });
 
 if (ofertasVisibles.length === 0) {
-        resultadosDiv.innerHTML = "<p class='text-center text-gray-500'>No se encontraron ofertas activas.</p>";
+        resultadosDiv.innerHTML = `
+          <div class="soft-card p-6 text-center fade-in">
+            <div class="text-4xl mb-2">🧐</div>
+            <p class="text-base font-semibold" style="color: var(--c-primary)">No encontramos ofertas con esos filtros.</p>
+            <p class="text-sm opacity-80 mt-1">Probá cambiando el Campo, Título o Distrito.</p>
+          </div>
+        `;
       } else {
         ofertasVisibles.forEach(oferta => {
           const card = document.createElement("div");
-          card.className = "bg-white rounded-xl shadow p-4";
+          card.className = "soft-card p-4 md:p-5 fade-in";
 
           const modalidad = getValueCI(oferta, "Modalidad") || "—";
           const inscripcionTexto = obtenerFechasInscripcionTexto(oferta);
@@ -545,30 +676,84 @@ if (ofertasVisibles.length === 0) {
 *Revista:* ${oferta["Revista"]}
 *Día y Horario:* ${oferta["Día y Horario"]}${inscripcionTexto ? `\n*Fechas de inscripción:* ${inscripcionTexto}` : ""}`;
 
+          
           card.innerHTML = `
             <div class="flex items-start justify-between gap-3">
-              <h2 class="text-xl font-bold mb-2" style="color: #24496e">${oferta["Unidad Curricular"]}</h2>
+              <div class="min-w-0">
+                <h2 class="text-[1.05rem] md:text-xl font-extrabold leading-snug" style="color: var(--c-primary)">
+                  ${oferta["Unidad Curricular"]}
+                </h2>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="chip">🏫 <span class="font-semibold">Institución</span>: ${oferta["Institución"]}</span>
+                  <span class="chip">📍 <span class="font-semibold">Distrito</span>: ${oferta["Distrito"]}</span>
+                  <span class="chip">🎓 <span class="font-semibold">Carrera</span>: ${oferta["Carrera"]}</span>
+                  <span class="chip">🧑‍💻 <span class="font-semibold">Modalidad</span>: ${modalidad}</span>
+                </div>
+              </div>
+
               <button type="button"
                 onclick="toggleFavorite('${oferta.__id}')"
-                class="text-2xl leading-none select-none -mt-1"
+                class="shrink-0 w-11 h-11 rounded-2xl grid place-items-center text-2xl leading-none select-none"
+                style="background: rgba(255,255,255,.75); border: 1px solid rgba(36,73,110,.12); box-shadow: 0 12px 24px rgba(36,73,110,.10);"
                 title="Agregar a favoritos"
                 aria-label="Favorito">
                 ${isFavorite(oferta.__id) ? "★" : "☆"}
               </button>
             </div>
-            <p><strong>Institución:</strong> ${oferta["Institución"]}</p>
-            <p><strong>Distrito:</strong> ${oferta["Distrito"]}</p>
-            <p><strong>Carrera:</strong> ${oferta["Carrera"]}</p>
-            <p><strong>Modalidad:</strong> ${modalidad}</p>
-            <p><strong>Entrega del Proyecto e inscripción:</strong> ${entregaTexto}</p>
-            <p><strong>Módulos:</strong> ${oferta["Módulos"]}</p>
-            <p><strong>Revista:</strong> ${oferta["Revista"]}</p>
-            <p><strong>Día y Horario:</strong> ${oferta["Día y Horario"]}</p>
-            <div class="mt-4 flex gap-4 flex-wrap">
-              <a href="${oferta["Ubicación"]}" target="_blank" class="bg-[#2d8bba] hover:bg-[#236d92] text-white px-3 py-1 rounded">Ubicación</a>
-              <a href="${oferta["Comunicado"]}" download class="bg-[#4d3069] hover:bg-[#3a2552] text-white px-3 py-1 rounded">Comunicado</a>
-              <button onclick="agendarInscripcion('${ofertaEncoded}')" class="bg-[#24496e] hover:bg-[#1b3552] text-white px-3 py-1 rounded">Agregar Recordatorio</button>
-              <button onclick="compartirTexto(\`${textoCompartir}\`)" class="bg-[#da6863] hover:bg-[#b44e4b] text-white px-3 py-1 rounded">Compartir</button>
+
+            <div class="mt-4 grid gap-2 text-[0.95rem]">
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5">🗓️</div>
+                <div class="min-w-0">
+                  <div class="font-semibold">Entrega del Proyecto e inscripción</div>
+                  <div class="opacity-90">${entregaTexto}</div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5">⏱️</div>
+                <div class="min-w-0">
+                  <div class="font-semibold">Día y horario</div>
+                  <div class="opacity-90">${oferta["Día y Horario"]}</div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div class="soft-card p-3" style="border-radius: 18px; box-shadow: none; background: rgba(255,255,255,.75)">
+                  <div class="text-xs uppercase tracking-wide opacity-70">Módulos</div>
+                  <div class="text-lg font-extrabold" style="color: var(--c-secondary)">${oferta["Módulos"] || "—"}</div>
+                </div>
+                <div class="soft-card p-3" style="border-radius: 18px; box-shadow: none; background: rgba(255,255,255,.75)">
+                  <div class="text-xs uppercase tracking-wide opacity-70">Revista</div>
+                  <div class="text-lg font-extrabold" style="color: var(--c-secondary)">${oferta["Revista"] || "—"}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+              <a href="${oferta["Ubicación"]}" target="_blank"
+                 class="text-center font-bold py-2 rounded-2xl"
+                 style="background: rgba(61,143,176,.16); border: 1px solid rgba(61,143,176,.28); color: var(--c-primary)">
+                 📍 Ubicación
+              </a>
+
+              <a href="${oferta["Comunicado"]}" download
+                 class="text-center font-bold py-2 rounded-2xl"
+                 style="background: rgba(77,48,105,.14); border: 1px solid rgba(77,48,105,.28); color: var(--c-secondary)">
+                 📄 Comunicado
+              </a>
+
+              <button onclick="agendarInscripcion('${ofertaEncoded}')"
+                 class="text-center font-bold py-2 rounded-2xl"
+                 style="background: rgba(36,73,110,.14); border: 1px solid rgba(36,73,110,.28); color: var(--c-primary)">
+                 ⏰ Agregar Recordatorio
+              </button>
+
+              <button onclick="compartirTexto(\`${textoCompartir}\`)"
+                 class="text-center font-bold py-2 rounded-2xl"
+                 style="background: rgba(218,104,99,.16); border: 1px solid rgba(218,104,99,.30); color: rgba(154,54,50,1)">
+                 📲 Compartir
+              </button>
             </div>
           `;
 
