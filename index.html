@@ -9,7 +9,7 @@
   <!-- Íconos para navegador y acceso directo -->
   <link rel="icon" href="icono.png" type="image/png">
   <link rel="apple-touch-icon" href="icono.png">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.webmanifest">
 
   <!-- Librerías -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -854,5 +854,12 @@ if (ofertasVisibles.length === 0) {
     <span class="label">Solo favoritos</span>
     <span class="pill">★ <span class="count">0</span></span>
   </button>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js");
+    }
+  </script>
+
 </body>
 </html>
